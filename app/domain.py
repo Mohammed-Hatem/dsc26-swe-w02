@@ -48,4 +48,57 @@ def apply_event(parcel: Parcel, event: EventType) -> Parcel:
     - delivered and returned are final; every other combination raises InvalidTransition.
     Never mutate the input parcel.
     """
-    raise NotImplementedError
+    state = parcel.state
+    if state == ParcelState.CREATED and event == EventType.DISPATCH:
+        return Parcel(
+            id=parcel.id,
+            merchant_ref=parcel.merchant_ref,
+            cod_amount_piastres=parcel.cod_amount_piastres,
+            address_text=parcel.address_text,
+            state=ParcelState.OUT_FOR_DELIVERY,
+            attempts=parcel.attempts + 1
+        )
+    elif state == ParcelState.OUT_FOR_DELIVERY and event == EventType.DELIVER:
+        return Parcel(
+            id=parcel.id,
+            merchant_ref=parcel.merchant_ref,
+            cod_amount_piastres=parcel.cod_amount_piastres,
+            address_text=parcel.address_text,
+            state=ParcelState.DELIVERED,
+            attempts=parcel.attempts
+        )
+    elif state == ParcelState.OUT_FOR_DELIVERY and event == EventType.FAIL:
+        return Parcel(
+            id=parcel.id,
+            merchant_ref=parcel.merchant_ref,
+            cod_amount_piastres=parcel.cod_amount_piastres,
+            address_text=parcel.address_text,
+            state=ParcelState.FAILED_ATTEMPT,
+            attempts=parcel.attempts
+        )
+    elif state == ParcelState.FAILED_ATTEMPT and event == EventType.DISPATCH:
+        if parcel.attempts < MAX_ATTEMPTS:
+            return Parcel(
+                id=parcel.id,
+                merchant_ref=parcel.merchant_ref,
+                cod_amount_piastres=parcel.cod_amount_piastres,
+                address_text=parcel.address_text,
+                state=ParcelState.OUT_FOR_DELIVERY,
+                attempts=parcel.attempts + 1
+            )
+        else:
+            raise InvalidTransition(f"Cannot dispatch parcel {parcel.id}: max attempts reached.")
+    elif state == ParcelState.FAILED_ATTEMPT and event == EventType.RETURN:
+        return Parcel(
+            id=parcel.id,
+            merchant_ref=parcel.merchant_ref,
+            cod_amount_piastres=parcel.cod_amount_piastres,
+            address_text=parcel.address_text,
+            state=ParcelState.RETURNED,
+            attempts=parcel.attempts
+        )
+    else:
+        raise InvalidTransition(f"Invalid transition from {state} with event {event}.") 
+       
+
+
