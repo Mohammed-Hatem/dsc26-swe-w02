@@ -3,7 +3,7 @@
 The HTTP layer translates requests into calls to app.domain; the domain decides.
 See README.md for the four operations, their operationIds and their errors.
 """
-import base64
+import secrets
 from http import HTTPStatus
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
@@ -152,9 +152,7 @@ def create_app() -> FastAPI:
         page = matches[:limit]
         if len(matches) > limit:
             last_index = page[-1][0]
-            next_cursor = base64.urlsafe_b64encode(
-                str(last_index).encode()
-            ).decode()
+            next_cursor = secrets.token_urlsafe(16)
             cursor_issued[next_cursor] = last_index
         else:
             next_cursor = None
